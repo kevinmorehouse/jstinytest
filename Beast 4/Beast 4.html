@@ -1,0 +1,120 @@
+<script src='../tinytest.js'></script>
+<script>
+
+  (function () {
+    var libraryStorage = {};
+    var librarySystem = function librarySystem(libraryName, dependencies, callback) {
+      var dependencyCounter;
+
+      if (arguments.length > 2) {
+
+      // If librarySystem is called with three arguments and no dependencies, run the callback immediately and store the result. 
+        if (dependencies.length === 0) {
+        callback = callback();
+      }
+
+      // Store library with the arguments passed at setting time.
+        libraryStorage[libraryName] = {
+          libraryName: libraryName,
+          dependencies: dependencies,
+          callback: callback
+        };
+
+      } else {
+        dependencyCounter = 0;
+
+        // If library has no dependencies, return the value stored at callback. 
+        if (libraryStorage[libraryName].dependencies.length === 0) {
+          return libraryStorage[libraryName].callback;
+
+          // If library has dependencies, and callback is a function, check if those dependencies exist within libraryStorage. 
+        } else if (libraryStorage[libraryName].callback instanceof Function) {
+
+          for (var i = 0; i < libraryStorage[libraryName].dependencies.length; i++) {
+
+            // If dependencies exist within libraryStorage, load their return values into the dependencies array of the library being called.
+            if (libraryStorage.hasOwnProperty(libraryStorage[libraryName].dependencies[i])) {
+              libraryStorage[libraryName].dependencies[i] = libraryStorage[libraryStorage[libraryName].dependencies[i]].callback;
+              dependencyCounter++;
+            }
+          }
+        }
+
+        // If all dependencies exist, call callback and pass the dependencies as arguments.
+        if (libraryStorage[libraryName].dependencies.length === dependencyCounter) {
+          return libraryStorage[libraryName].callback.apply(this, libraryStorage[libraryName].dependencies);
+        } else {
+
+        // If any dependencies are missing, throw an Error.
+          throw new TypeError('Dependencies not found: Please load required dependencies');
+        }
+      }
+    }
+
+    window.librarySystem = librarySystem;
+  }());
+
+  tests({
+    'If \'librarySystem\' is called with three arguments (a string, an array, and a callback), it should run the callback function once and store its return value for later retrieval.': function () {
+      var numberOfTimesCallbackHasRun = 0;
+      librarySystem('callbackRunner', [], function () {
+        numberOfTimesCallbackHasRun++;
+        return 'Ran callback!';
+      });
+      librarySystem('callbackRunner');
+      eq(numberOfTimesCallbackHasRun, 1);
+    },
+    'If \'librarySystem\' is called with one argument (a string), it should return the return value for the library stored under that argument.': function () {
+      librarySystem('dependency', [], function () {
+        return 'loaded dependency';
+      });
+
+      librarySystem('app', ['dependency'], function (dependency) {
+        return 'app with ' + dependency;
+      });
+
+      eq(librarySystem('app'), 'app with loaded dependency');
+    },
+    'If a library is called, and that library\'s required dependencies have already been loaded into librarySystem, it should call that library\'s callback using the return values of its dependencies as arguments.': function () {
+      librarySystem('name1', [], function () {
+        return 'Bill';
+      });
+
+      librarySystem('company1', [], function () {
+        return 'Microsoft';
+      });
+
+      librarySystem('workBlurb1', ['name1', 'company1'], function (name, company) {
+        return name + ' works at ' + company;
+      });
+
+      eq(librarySystem('workBlurb1'), 'Bill works at Microsoft');
+    },
+    'It should allow libraries to be created out of order.': function () {
+      librarySystem('workBlurb2', ['name2', 'company2'], function (name, company) {
+        return name + ' works at ' + company;
+      });
+
+      librarySystem('name2', [], function () {
+        return 'Gordon';
+      });
+
+      librarySystem('company2', [], function () {
+        return 'Watch and Code';
+      });
+
+      eq(librarySystem('workBlurb2'), 'Gordon works at Watch and Code');
+    },
+    'It should only run the callback function for each library one time, regardless of how many times the library is called.': function () {
+      var numberOfTimesCallbackHasRun = 0;
+      librarySystem('runsOnlyOnce', [], function () {
+        numberOfTimesCallbackHasRun++;
+        return 'Hello!';
+      });
+      librarySystem('runsOnlyOnce');
+      librarySystem('runsOnlyOnce');
+      librarySystem('runsOnlyOnce');
+      eq(numberOfTimesCallbackHasRun, 1);
+    }
+  });
+</script>
