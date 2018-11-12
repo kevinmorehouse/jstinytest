@@ -1,0 +1,102 @@
+<script src='../tinytest.js'></script>
+<script>
+  /**
+   *   Function signature:
+   *     toFixed(value, precision)
+   *
+   *   Parameters:
+   *     value
+   *     precision
+   *
+   *   Requirements:
+   *     1. If 'precision' is undefined, the value of precision should default to 0
+   *     2. If 'precision' is defined, it should format the number using fixed-point notation, and round if necessary
+   *     3. If 'precision' is greater than the length of 'value', it should pad the final value with zeroes as necessary
+   *     4.  If 'value' is a whole number and 'precision' is greater than one, it should add a decimal and trailing zeroes, as necessary
+   *     5. It should round 0.615 to 0.62
+   *     6. It should round 10.235 to 10.24
+   *     7. It should round 1.005 to 1.01
+   */
+
+
+  var toFixed = function toFixed(value, precision) {
+    var valueAsString = String(value);
+    var valueWithNewDecimal;
+    var valueWithNewDecimalRounded;
+    var valueToFixed;
+    var oldDecimalIndex;
+    var regexRemoveOldDecimal;
+    var regexAddNewDecimal;
+    var regexRestoreOldDecimal;
+
+    if (arguments.length < 2) {
+      precision = 0;
+    }
+
+    // If 'value' doesn't feature a decimal point (e.g. integer values), add one at the end of the string.
+    if (valueAsString.indexOf('.') < 0) {
+      valueAsString = valueAsString + '.';
+    }
+
+    // Now that valueAsString must contain a decimal point, store the index of that point.
+    oldDecimalIndex = valueAsString.indexOf('.');
+
+    // Construct regular expressions dynamically, based on existing variables. 
+    regexRemoveOldDecimal = new RegExp ('(\\.(?=.*\\.))', 'g');
+    regexAddNewDecimal = new RegExp('(^.{' + (oldDecimalIndex + precision + 1) + '})', 'g');
+    regexRestoreOldDecimal = new RegExp('(^.{' + oldDecimalIndex + '})', 'g');
+
+    // If 'precision' lengthens value beyond the existing number of digits, pad end with zeroes. 
+    if ((oldDecimalIndex + precision) >= valueAsString.length) {
+      valueAsString = valueAsString.padEnd(valueAsString.length + precision, '0');
+    }
+
+    // Add new decimal a 'precision' number of spaces to the right, and remove old decimal.
+    valueWithNewDecimal = valueAsString.replace(regexAddNewDecimal, '$1.').replace(regexRemoveOldDecimal, '');
+
+    //Convert to floating point number, round normally, and then convert to string.
+    valueWithNewDecimalRounded = String(Math.round(parseFloat(valueWithNewDecimal)));
+
+    // Replace leading zero lost in parsing, if necessary.
+    if (valueAsString.startsWith('0') && valueWithNewDecimalRounded !== '0') {
+      valueWithNewDecimalRounded = '0' + valueWithNewDecimalRounded;
+    }
+
+    // Check to see if old decimal position is still within the length of rounded value.
+    if (valueWithNewDecimalRounded.length > oldDecimalIndex) {
+
+      // If so, restore old decimal to its original position.
+      valueToFixed = valueWithNewDecimalRounded.replace(regexRestoreOldDecimal, '$1.');
+    } else {
+
+      // If not, leave the rounded value as-is.
+      valueToFixed = valueWithNewDecimalRounded;
+    }
+
+    return valueToFixed;
+  };
+
+  tests({
+    '1. If \'precision\' is undefined, the value of precision should default to 0': function () {
+      eq(toFixed(12345.6789), '12346');
+    },
+    '2. If \'precision\' is defined, it should format the number using fixed-point notation, and round if necessary': function () {
+      eq(toFixed(12345.6789, 1), '12345.7');
+    },
+    '3. If \'precision\' is greater than the length of \'value\', it should pad the final value with zeroes, as necessary': function () {
+      eq(toFixed(12345.6789, 6), '12345.678900');
+    },
+    '4. If \'value\' is a whole number and \'precision\' is greater than one, it should add a decimal and trailing zeroes, as necessary': function () {
+      eq(toFixed(1, 2), '1.00');
+    },
+    '5. It should round 0.615 to 0.62': function () {
+      eq(toFixed(0.615, 2), '0.62');
+    },
+    '6. It should round 10.235 to 10.24': function () {
+      eq(toFixed(10.235, 2), '10.24');
+    },
+    '7. It should round 1.005 to 1.01': function () {
+      eq(toFixed(1.005, 2), '1.01');
+    },
+  });
+</script>
