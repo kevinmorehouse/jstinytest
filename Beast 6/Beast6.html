@@ -16,6 +16,10 @@
    *     5. It should round 0.615 to 0.62
    *     6. It should round 10.235 to 10.24
    *     7. It should round 1.005 to 1.01
+   *     8. It should round 0.005 to 0.01
+   *     9. It should round -0.005 to -0.01
+   *    10. It should round -0.0545 to -0.05
+   *    11. It should round -10.235 to -10.24
    */
 
 
@@ -54,12 +58,19 @@
     // Add new decimal a 'precision' number of spaces to the right, and remove old decimal.
     valueWithNewDecimal = valueAsString.replace(regexAddNewDecimal, '$1.').replace(regexRemoveOldDecimal, '');
 
-    //Convert to floating point number, round normally, and then convert to string.
-    valueWithNewDecimalRounded = String(Math.round(parseFloat(valueWithNewDecimal)));
+    // Get the absolute value, round, and convert to string. 
+    valueWithNewDecimalRounded = String(Math.round(Math.abs(valueWithNewDecimal)));
 
-    // Replace leading zero lost in parsing, if necessary.
-    if (valueAsString.startsWith('0') && valueWithNewDecimalRounded !== '0') {
-      valueWithNewDecimalRounded = '0' + valueWithNewDecimalRounded;
+    if (valueWithNewDecimalRounded !== 0) {
+
+      // Replace any leading zeroes lost in parsing, if necessary, and restore '-' for negative values.
+      if (valueAsString.startsWith('0')) {
+        valueWithNewDecimalRounded = valueWithNewDecimalRounded.padStart(oldDecimalIndex + precision, '0');
+      } else if (valueAsString.startsWith('-0')) {
+        valueWithNewDecimalRounded = ('-' + valueWithNewDecimalRounded.padStart(oldDecimalIndex + precision - 1, '0'));
+      } else if (valueAsString.startsWith('-')) {
+        valueWithNewDecimalRounded = '-' + valueWithNewDecimalRounded;
+      }
     }
 
     // Check to see if old decimal position is still within the length of rounded value.
@@ -98,5 +109,17 @@
     '7. It should round 1.005 to 1.01': function () {
       eq(toFixed(1.005, 2), '1.01');
     },
+    '8. It should round 0.005 to 0.01': function () {
+      eq(toFixed(0.005, 2), '0.01');
+    },
+    '9. It should round -0.005 to -0.01': function () {
+      eq(toFixed(-0.005, 2), '-0.01');
+    },
+    '10. It should round -0.0545 to -0.05': function () {
+      eq(toFixed(-0.0545, 2), '-0.05');
+    },
+    '11. It should round -10.235 to -10.24': function () {
+      eq(toFixed(-10.235, 2), '-10.24');
+    }
   });
 </script>
